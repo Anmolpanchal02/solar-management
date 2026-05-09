@@ -1,5 +1,7 @@
-<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg">
-  <rect width="512" height="512" fill="#3b82f6"/>
-  <circle cx="256" cy="256" r="128" fill="#fbbf24"/>
-  <text x="256" y="290" font-size="64" fill="#fff" text-anchor="middle" font-family="Arial">☀️</text>
-</svg>
+
+    <svg width="512" height="512" xmlns="http://www.w3.org/2000/svg">
+      <rect width="512" height="512" fill="#3b82f6"/>
+      <circle cx="256" cy="256" r="128" fill="#fbbf24"/>
+      <text x="256" y="341.3333333333333" font-size="64" fill="#ffffff" text-anchor="middle" font-family="Arial" font-weight="bold">Solar</text>
+    </svg>
+  
