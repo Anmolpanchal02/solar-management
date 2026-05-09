@@ -1,26 +1,183 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: 0 0% 100%;
+    --foreground: 0 0% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 3.9%;
+    --primary: 0 0% 9%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 96.1%;
+    --secondary-foreground: 0 0% 9%;
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
+    --accent: 0 0% 96.1%;
+    --accent-foreground: 0 0% 9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 89.8%;
+    --input: 0 0% 89.8%;
+    --ring: 0 0% 3.9%;
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 0 0% 5%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 8%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 8%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 14.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 63.9%;
+    --accent: 0 0% 14.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 50%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
+    --ring: 217 91% 60%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+
+/* FullCalendar Dark Mode Styles */
+.dark .fc {
+  --fc-border-color: rgb(38 38 38);
+  --fc-button-bg-color: rgb(59 130 246);
+  --fc-button-border-color: rgb(59 130 246);
+  --fc-button-hover-bg-color: rgb(37 99 235);
+  --fc-button-hover-border-color: rgb(37 99 235);
+  --fc-button-active-bg-color: rgb(29 78 216);
+  --fc-button-active-border-color: rgb(29 78 216);
+  --fc-event-bg-color: rgb(59 130 246);
+  --fc-event-border-color: rgb(59 130 246);
+  --fc-event-text-color: #fff;
+  --fc-page-bg-color: rgb(10 10 10);
+  --fc-neutral-bg-color: rgb(23 23 23);
+  --fc-neutral-text-color: rgb(229 229 229);
+  --fc-list-event-hover-bg-color: rgb(38 38 38);
+}
+
+.dark .fc .fc-col-header-cell {
+  background-color: rgb(23 23 23);
+  color: rgb(229 229 229);
+}
+
+.dark .fc .fc-daygrid-day {
+  background-color: rgb(10 10 10);
+  color: rgb(229 229 229);
+}
+
+.dark .fc .fc-daygrid-day-number {
+  color: rgb(229 229 229);
+}
+
+.dark .fc .fc-day-today {
+  background-color: rgb(30 58 138) !important;
+}
+
+.dark .fc-theme-standard td,
+.dark .fc-theme-standard th {
+  border-color: rgb(38 38 38);
+}
+
+.dark .fc-theme-standard .fc-scrollgrid {
+  border-color: rgb(38 38 38);
+}
+
+/* Light Mode Calendar Styles */
+.fc {
+  --fc-border-color: rgb(229 231 235);
+  --fc-button-bg-color: rgb(59 130 246);
+  --fc-button-border-color: rgb(59 130 246);
+  --fc-button-hover-bg-color: rgb(37 99 235);
+  --fc-button-hover-border-color: rgb(37 99 235);
+  --fc-button-active-bg-color: rgb(29 78 216);
+  --fc-button-active-border-color: rgb(29 78 216);
+  --fc-event-bg-color: rgb(59 130 246);
+  --fc-event-border-color: rgb(59 130 246);
+  --fc-event-text-color: #fff;
+}
+
+.calendar-wrapper {
+  background: var(--card);
+  border-radius: 0.5rem;
+  padding: 1rem;
+}
+
+
+/* Custom Slider Styles */
+input[type="range"].slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 12px;
+  border-radius: 6px;
+  outline: none;
+}
+
+input[type="range"].slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: hsl(var(--primary));
+  cursor: pointer;
+  border: 3px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}
+
+input[type="range"].slider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+}
+
+input[type="range"].slider::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: hsl(var(--primary));
+  cursor: pointer;
+  border: 3px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}
+
+input[type="range"].slider::-moz-range-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+}
+
+.dark input[type="range"].slider {
+  background: rgb(55, 65, 81);
 }
