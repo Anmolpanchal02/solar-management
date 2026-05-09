@@ -24,25 +24,35 @@ export async function getAdminDashboardStats() {
     const startMonth = startOfMonth(today);
     const endMonth = endOfMonth(today);
 
-    // Get counts
-    const totalEmployees = await User.countDocuments({ role: 'employee', isActive: true });
-    const totalSites = await Site.countDocuments();
-    const completedInstallations = await Site.countDocuments({ status: 'completed' });
-    const pendingTasks = await Task.countDocuments({ status: { $ne: 'completed' } });
-    const sitesInProgress = await Site.countDocuments({ status: 'in-progress' });
-    
-    const dailyVisits = await Visit.countDocuments({
-      visitDate: { $gte: startToday, $lte: endToday },
-    });
+    // Run all queries in parallel for better performance
+    const [
+      totalEmployees,
+      totalSites,
+      completedInstallations,
+      pendingTasks,
+      sitesInProgress,
+      dailyVisits,
+      monthlyReports,
+      activeEmployeeIds
+    ] = await Promise.all([
+      User.countDocuments({ role: 'employee', isActive: true }),
+      Site.countDocuments(),
+      Site.countDocuments({ status: 'completed' }),
+      Task.countDocuments({ status: { $ne: 'completed' } }),
+      Site.countDocuments({ status: 'in-progress' }),
+      Visit.countDocuments({
+        visitDate: { $gte: startToday, $lte: endToday },
+      }),
+      Visit.countDocuments({
+        visitDate: { $gte: startMonth, $lte: endMonth },
+        status: 'completed',
+      }),
+      Attendance.distinct('employee', {
+        date: { $gte: startToday, $lte: endToday },
+      })
+    ]);
 
-    const monthlyReports = await Visit.countDocuments({
-      visitDate: { $gte: startMonth, $lte: endMonth },
-      status: 'completed',
-    });
-
-    const activeEmployees = await Attendance.distinct('employee', {
-      date: { $gte: startToday, $lte: endToday },
-    }).then((ids) => ids.length);
+    const activeEmployees = activeEmployeeIds.length;
 
     return {
       success: true,
@@ -70,20 +80,28 @@ export async function getEmployeeDashboardStats(employeeId: string) {
     const startToday = startOfDay(today);
     const endToday = endOfDay(today);
 
-    const assignedTasks = await Task.countDocuments({ assignedTo: employeeId });
-    const completedTasks = await Task.countDocuments({ assignedTo: employeeId, status: 'completed' });
-    const pendingTasks = await Task.countDocuments({ assignedTo: employeeId, status: { $ne: 'completed' } });
-    const assignedSites = await Site.countDocuments({ assignedEmployee: employeeId });
-    
-    const todayVisits = await Visit.countDocuments({
-      employee: employeeId,
-      visitDate: { $gte: startToday, $lte: endToday },
-    });
-
-    const todayAttendance = await Attendance.findOne({
-      employee: employeeId,
-      date: { $gte: startToday, $lte: endToday },
-    });
+    // Run all queries in parallel
+    const [
+      assignedTasks,
+      completedTasks,
+      pendingTasks,
+      assignedSites,
+      todayVisits,
+      todayAttendance
+    ] = await Promise.all([
+      Task.countDocuments({ assignedTo: employeeId }),
+      Task.countDocuments({ assignedTo: employeeId, status: 'completed' }),
+      Task.countDocuments({ assignedTo: employeeId, status: { $ne: 'completed' } }),
+      Site.countDocuments({ assignedEmployee: employeeId }),
+      Visit.countDocuments({
+        employee: employeeId,
+        visitDate: { $gte: startToday, $lte: endToday },
+      }),
+      Attendance.findOne({
+        employee: employeeId,
+        date: { $gte: startToday, $lte: endToday },
+      }).select('checkOut').lean()
+    ]);
 
     return {
       success: true,
@@ -264,29 +282,27 @@ export async function getRecentActivity() {
 
     await connectDB();
 
-    // Get recent sites (last 10)
-    const recentSites = await Site.find()
-      .sort({ createdAt: -1 })
-      .limit(5)
-      .select('customerName createdAt')
-      .lean();
-
-    // Get recent tasks (last 10)
-    const recentTasks = await Task.find()
-      .sort({ createdAt: -1 })
-      .limit(5)
-      .populate('assignedTo', 'name')
-      .select('title assignedTo createdAt')
-      .lean();
-
-    // Get recent visits (last 10)
-    const recentVisits = await Visit.find()
-      .sort({ createdAt: -1 })
-      .limit(5)
-      .populate('employee', 'name')
-      .populate('site', 'customerName')
-      .select('employee site status createdAt')
-      .lean();
+    // Run all queries in parallel for better performance
+    const [recentSites, recentTasks, recentVisits] = await Promise.all([
+      Site.find()
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .select('customerName createdAt')
+        .lean(),
+      Task.find()
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .populate('assignedTo', 'name')
+        .select('title assignedTo createdAt')
+        .lean(),
+      Visit.find()
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .populate('employee', 'name')
+        .populate('site', 'customerName')
+        .select('employee site status createdAt')
+        .lean()
+    ]);
 
     // Combine and sort all activities
     const activities = [
@@ -298,13 +314,13 @@ export async function getRecentActivity() {
       })),
       ...recentTasks.map(task => ({
         type: 'task',
-        message: `Task assigned: ${task.title}${task.assignedTo ? ` to ${task.assignedTo.name}` : ''}`,
+        message: `Task assigned: ${task.title}${task.assignedTo && typeof task.assignedTo === 'object' ? ` to ${task.assignedTo.name}` : ''}`,
         timestamp: task.createdAt,
         color: 'blue'
       })),
       ...recentVisits.map(visit => ({
         type: 'visit',
-        message: `Site visit ${visit.status}: ${visit.site?.customerName || 'Unknown'} by ${visit.employee?.name || 'Unknown'}`,
+        message: `Site visit ${visit.status}: ${visit.site && typeof visit.site === 'object' ? visit.site.customerName : 'Unknown'} by ${visit.employee && typeof visit.employee === 'object' ? visit.employee.name : 'Unknown'}`,
         timestamp: visit.createdAt,
         color: visit.status === 'completed' ? 'green' : 'purple'
       }))

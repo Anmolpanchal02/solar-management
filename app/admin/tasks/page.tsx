@@ -13,6 +13,8 @@ export const metadata: Metadata = {
   description: 'Manage tasks and assignments',
 };
 
+export const revalidate = 30; // Revalidate every 30 seconds
+
 export default async function TasksPage() {
   const session = await getServerSession(authOptions);
 

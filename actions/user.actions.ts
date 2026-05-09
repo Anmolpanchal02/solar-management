@@ -14,7 +14,11 @@ export async function getUsers() {
     }
 
     await connectDB();
-    const users = await User.find().select('-password').sort({ createdAt: -1 }).lean();
+    const users = await User.find()
+      .select('name email phone role isActive avatar createdAt')
+      .sort({ createdAt: -1 })
+      .limit(100)
+      .lean();
     
     return {
       success: true,
@@ -29,7 +33,7 @@ export async function getEmployees() {
   try {
     await connectDB();
     const employees = await User.find({ role: 'employee', isActive: true })
-      .select('-password')
+      .select('name email phone avatar')
       .sort({ name: 1 })
       .lean();
     

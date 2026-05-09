@@ -4,6 +4,8 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import AdminDashboardClient from '@/components/dashboard/AdminDashboardClient';
 import { getAdminDashboardStats, getRecentActivity } from '@/actions/dashboard.actions';
 
+export const revalidate = 30; // Revalidate every 30 seconds
+
 export default async function AdminDashboardPage() {
   const session = await auth();
 

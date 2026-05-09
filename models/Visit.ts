@@ -78,6 +78,7 @@ VisitSchema.index({ employee: 1, visitDate: -1 });
 VisitSchema.index({ site: 1 });
 VisitSchema.index({ location: '2dsphere' });
 VisitSchema.index({ status: 1 });
+VisitSchema.index({ createdAt: -1 }); // For sorting by creation date
 
 const Visit: Model<VisitDocument> = mongoose.models.Visit || mongoose.model<VisitDocument>('Visit', VisitSchema);
 

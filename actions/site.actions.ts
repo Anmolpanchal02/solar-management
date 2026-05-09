@@ -11,8 +11,10 @@ export async function getSites() {
   try {
     await connectDB();
     const sites = await Site.find()
+      .select('customerName customerPhone address status progressPercentage assignedEmployee createdAt')
       .populate('assignedEmployee', 'name email phone')
       .sort({ createdAt: -1 })
+      .limit(100)
       .lean();
     
     return {
@@ -48,7 +50,9 @@ export async function getSitesByEmployee(employeeId: string) {
   try {
     await connectDB();
     const sites = await Site.find({ assignedEmployee: employeeId })
+      .select('customerName customerPhone address status progressPercentage location createdAt')
       .sort({ createdAt: -1 })
+      .limit(50)
       .lean();
     
     return {

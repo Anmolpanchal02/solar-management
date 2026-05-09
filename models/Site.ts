@@ -203,6 +203,8 @@ const SiteSchema = new Schema<SiteDocument>(
 SiteSchema.index({ location: '2dsphere' });
 SiteSchema.index({ status: 1 });
 SiteSchema.index({ assignedEmployee: 1 });
+SiteSchema.index({ createdAt: -1 }); // For sorting by creation date
+SiteSchema.index({ customerName: 1 }); // For searching by customer name
 
 const Site: Model<SiteDocument> = mongoose.models.Site || mongoose.model<SiteDocument>('Site', SiteSchema);
 

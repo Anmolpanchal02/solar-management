@@ -12,10 +12,12 @@ export async function getVisits() {
   try {
     await connectDB();
     const visits = await Visit.find()
+      .select('employee site task visitDate checkOutTime status workCompletionPercentage createdAt')
       .populate('employee', 'name email phone')
       .populate('site', 'customerName address')
       .populate('task', 'title')
       .sort({ visitDate: -1 })
+      .limit(100)
       .lean();
     
     return {
@@ -53,9 +55,11 @@ export async function getVisitsByEmployee(employeeId: string) {
   try {
     await connectDB();
     const visits = await Visit.find({ employee: employeeId })
+      .select('site task visitDate checkOutTime status workCompletionPercentage notes createdAt')
       .populate('site', 'customerName address')
       .populate('task', 'title')
       .sort({ visitDate: -1 })
+      .limit(50)
       .lean();
     
     return {

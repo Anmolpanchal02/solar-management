@@ -262,20 +262,20 @@ export async function getAllActivitiesAsEvents() {
         end: task.deadline || task.createdAt,
         type: 'task',
         color: '#3b82f6', // blue
-        employee: task.assignedTo ? { _id: task.assignedTo._id, name: task.assignedTo.name } : undefined,
-        site: task.site ? { _id: task.site._id, customerName: task.site.customerName } : undefined
+        employee: task.assignedTo && typeof task.assignedTo === 'object' ? { _id: task.assignedTo._id, name: task.assignedTo.name } : undefined,
+        site: task.site && typeof task.site === 'object' ? { _id: task.site._id, customerName: task.site.customerName } : undefined
       })),
       // Visits as events
       ...visits.map(visit => ({
         _id: `visit-${visit._id}`,
-        title: `Visit: ${visit.site?.customerName || 'Unknown Site'}`,
+        title: `Visit: ${visit.site && typeof visit.site === 'object' ? visit.site.customerName : 'Unknown Site'}`,
         description: visit.notes || '',
         start: visit.visitDate || visit.createdAt,
         end: visit.visitDate || visit.createdAt,
         type: 'visit',
         color: visit.status === 'completed' ? '#10b981' : '#8b5cf6', // green or purple
-        employee: visit.employee ? { _id: visit.employee._id, name: visit.employee.name } : undefined,
-        site: visit.site ? { _id: visit.site._id, customerName: visit.site.customerName } : undefined
+        employee: visit.employee && typeof visit.employee === 'object' ? { _id: visit.employee._id, name: visit.employee.name } : undefined,
+        site: visit.site && typeof visit.site === 'object' ? { _id: visit.site._id, customerName: visit.site.customerName } : undefined
       }))
     ];
 

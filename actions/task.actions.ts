@@ -12,10 +12,12 @@ export async function getTasks() {
   try {
     await connectDB();
     const tasks = await Task.find()
+      .select('title description status priority deadline site assignedTo createdBy createdAt')
       .populate('site', 'customerName address')
       .populate('assignedTo', 'name email phone')
       .populate('createdBy', 'name')
       .sort({ createdAt: -1 })
+      .limit(100)
       .lean();
     
     return {
@@ -53,8 +55,10 @@ export async function getTasksByEmployee(employeeId: string) {
   try {
     await connectDB();
     const tasks = await Task.find({ assignedTo: employeeId })
+      .select('title description status priority deadline site createdAt')
       .populate('site', 'customerName address location')
       .sort({ deadline: 1 })
+      .limit(50)
       .lean();
     
     return {

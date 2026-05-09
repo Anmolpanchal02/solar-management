@@ -11,6 +11,8 @@ export const metadata: Metadata = {
   description: 'Manage solar installation sites',
 };
 
+export const revalidate = 30; // Revalidate every 30 seconds
+
 export default async function SitesPage() {
   const session = await getServerSession(authOptions);
 

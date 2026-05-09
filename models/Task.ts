@@ -58,6 +58,7 @@ TaskSchema.index({ assignedTo: 1, status: 1 });
 TaskSchema.index({ site: 1 });
 TaskSchema.index({ deadline: 1 });
 TaskSchema.index({ priority: 1 });
+TaskSchema.index({ createdAt: -1 }); // For sorting by creation date
 
 const Task: Model<TaskDocument> = mongoose.models.Task || mongoose.model<TaskDocument>('Task', TaskSchema);
 
