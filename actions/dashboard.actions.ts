@@ -253,3 +253,73 @@ export async function getMonthlyVisitsChart() {
     return { success: false, error: error.message };
   }
 }
+
+
+export async function getRecentActivity() {
+  try {
+    const session = await auth();
+    if (!session || session.user.role !== 'admin') {
+      throw new Error('Unauthorized');
+    }
+
+    await connectDB();
+
+    // Get recent sites (last 10)
+    const recentSites = await Site.find()
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select('customerName createdAt')
+      .lean();
+
+    // Get recent tasks (last 10)
+    const recentTasks = await Task.find()
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .populate('assignedTo', 'name')
+      .select('title assignedTo createdAt')
+      .lean();
+
+    // Get recent visits (last 10)
+    const recentVisits = await Visit.find()
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .populate('employee', 'name')
+      .populate('site', 'customerName')
+      .select('employee site status createdAt')
+      .lean();
+
+    // Combine and sort all activities
+    const activities = [
+      ...recentSites.map(site => ({
+        type: 'site',
+        message: `New site registered: ${site.customerName}`,
+        timestamp: site.createdAt,
+        color: 'yellow'
+      })),
+      ...recentTasks.map(task => ({
+        type: 'task',
+        message: `Task assigned: ${task.title}${task.assignedTo ? ` to ${task.assignedTo.name}` : ''}`,
+        timestamp: task.createdAt,
+        color: 'blue'
+      })),
+      ...recentVisits.map(visit => ({
+        type: 'visit',
+        message: `Site visit ${visit.status}: ${visit.site?.customerName || 'Unknown'} by ${visit.employee?.name || 'Unknown'}`,
+        timestamp: visit.createdAt,
+        color: visit.status === 'completed' ? 'green' : 'purple'
+      }))
+    ];
+
+    // Sort by timestamp and take latest 10
+    activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    const latestActivities = activities.slice(0, 10);
+
+    return {
+      success: true,
+      data: latestActivities,
+    };
+  } catch (error: any) {
+    console.error('Get recent activity error:', error);
+    return { success: false, error: error.message };
+  }
+}

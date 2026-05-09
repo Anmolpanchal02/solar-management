@@ -202,3 +202,105 @@ export async function deleteCalendarEvent(id: string) {
     return { success: false, error: error.message };
   }
 }
+
+
+// Get all activities (sites, tasks, visits) as calendar events
+export async function getAllActivitiesAsEvents() {
+  try {
+    const session = await auth();
+    if (!session) {
+      throw new Error('Unauthorized');
+    }
+
+    await connectDB();
+
+    const Site = (await import('@/models/Site')).default;
+    const Task = (await import('@/models/Task')).default;
+    const Visit = (await import('@/models/Visit')).default;
+
+    // Get all sites
+    const sites = await Site.find()
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean();
+
+    // Get all tasks
+    const tasks = await Task.find()
+      .populate('assignedTo', 'name')
+      .populate('site', 'customerName')
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean();
+
+    // Get all visits
+    const visits = await Visit.find()
+      .populate('employee', 'name')
+      .populate('site', 'customerName')
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean();
+
+    // Convert to calendar events format
+    const allEvents = [
+      // Sites as events
+      ...sites.map(site => ({
+        _id: `site-${site._id}`,
+        title: `Site: ${site.customerName}`,
+        description: `Address: ${site.address}`,
+        start: site.createdAt,
+        end: site.createdAt,
+        type: 'site',
+        color: '#fbbf24', // yellow
+        site: { _id: site._id, customerName: site.customerName }
+      })),
+      // Tasks as events
+      ...tasks.map(task => ({
+        _id: `task-${task._id}`,
+        title: `Task: ${task.title}`,
+        description: task.description || '',
+        start: task.deadline || task.createdAt,
+        end: task.deadline || task.createdAt,
+        type: 'task',
+        color: '#3b82f6', // blue
+        employee: task.assignedTo ? { _id: task.assignedTo._id, name: task.assignedTo.name } : undefined,
+        site: task.site ? { _id: task.site._id, customerName: task.site.customerName } : undefined
+      })),
+      // Visits as events
+      ...visits.map(visit => ({
+        _id: `visit-${visit._id}`,
+        title: `Visit: ${visit.site?.customerName || 'Unknown Site'}`,
+        description: visit.notes || '',
+        start: visit.visitDate || visit.createdAt,
+        end: visit.visitDate || visit.createdAt,
+        type: 'visit',
+        color: visit.status === 'completed' ? '#10b981' : '#8b5cf6', // green or purple
+        employee: visit.employee ? { _id: visit.employee._id, name: visit.employee.name } : undefined,
+        site: visit.site ? { _id: visit.site._id, customerName: visit.site.customerName } : undefined
+      }))
+    ];
+
+    // Get regular calendar events
+    const calendarEvents = await CalendarEvent.find()
+      .populate('employee', 'name')
+      .populate('site', 'customerName')
+      .sort({ start: 1 })
+      .lean();
+
+    // Combine all events
+    const combinedEvents = [
+      ...calendarEvents.map(event => ({
+        ...event,
+        color: '#6366f1' // indigo for manual events
+      })),
+      ...allEvents
+    ];
+
+    return {
+      success: true,
+      data: JSON.parse(JSON.stringify(combinedEvents)),
+    };
+  } catch (error: any) {
+    console.error('Get all activities error:', error);
+    return { success: false, error: error.message };
+  }
+}

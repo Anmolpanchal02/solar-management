@@ -27,9 +27,27 @@ interface DashboardStats {
 interface AdminDashboardClientProps {
   stats: DashboardStats;
   userName: string;
+  recentActivity: Array<{
+    type: string;
+    message: string;
+    timestamp: Date;
+    color: string;
+  }>;
 }
 
-export default function AdminDashboardClient({ stats, userName }: AdminDashboardClientProps) {
+export default function AdminDashboardClient({ stats, userName, recentActivity }: AdminDashboardClientProps) {
+  const getTimeAgo = (timestamp: Date) => {
+    const now = new Date();
+    const diff = now.getTime() - new Date(timestamp).getTime();
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+    if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+    return `${days} day${days > 1 ? 's' : ''} ago`;
+  };
   return (
     <div className="space-y-6">
       <div>
@@ -105,29 +123,24 @@ export default function AdminDashboardClient({ stats, userName }: AdminDashboard
             <CardTitle>Recent Activity</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center gap-4 p-3 bg-accent rounded-lg">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">New site visit completed</p>
-                  <p className="text-xs text-muted-foreground">2 minutes ago</p>
-                </div>
+            {recentActivity.length > 0 ? (
+              <div className="space-y-3">
+                {recentActivity.map((activity, index) => (
+                  <div key={index} className="flex items-start gap-3 p-3 bg-accent rounded-lg hover:bg-accent/80 transition-colors">
+                    <div className={`w-2 h-2 mt-2 rounded-full bg-${activity.color}-500`}></div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{activity.message}</p>
+                      <p className="text-xs text-muted-foreground">{getTimeAgo(activity.timestamp)}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div className="flex items-center gap-4 p-3 bg-accent rounded-lg">
-                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Task assigned to employee</p>
-                  <p className="text-xs text-muted-foreground">15 minutes ago</p>
-                </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Activity className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">No recent activity</p>
               </div>
-              <div className="flex items-center gap-4 p-3 bg-accent rounded-lg">
-                <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">New site registered</p>
-                  <p className="text-xs text-muted-foreground">1 hour ago</p>
-                </div>
-              </div>
-            </div>
+            )}
           </CardContent>
         </Card>
 

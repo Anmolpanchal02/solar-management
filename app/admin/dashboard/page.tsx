@@ -2,7 +2,7 @@ import { auth } from '@/lib/auth/auth';
 import { redirect } from 'next/navigation';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import AdminDashboardClient from '@/components/dashboard/AdminDashboardClient';
-import { getAdminDashboardStats } from '@/actions/dashboard.actions';
+import { getAdminDashboardStats, getRecentActivity } from '@/actions/dashboard.actions';
 
 export default async function AdminDashboardPage() {
   const session = await auth();
@@ -12,6 +12,8 @@ export default async function AdminDashboardPage() {
   }
 
   const statsResult = await getAdminDashboardStats();
+  const activityResult = await getRecentActivity();
+  
   const stats = statsResult.success && statsResult.data ? statsResult.data : {
     totalEmployees: 0,
     totalSites: 0,
@@ -23,9 +25,11 @@ export default async function AdminDashboardPage() {
     sitesInProgress: 0,
   };
 
+  const recentActivity = activityResult.success && activityResult.data ? activityResult.data : [];
+
   return (
     <DashboardLayout user={session.user}>
-      <AdminDashboardClient stats={stats} userName={session.user.name} />
+      <AdminDashboardClient stats={stats} userName={session.user.name} recentActivity={recentActivity} />
     </DashboardLayout>
   );
 }

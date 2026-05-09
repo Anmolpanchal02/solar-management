@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import { getServerSession } from 'next-auth';
 import { redirect } from 'next/navigation';
 import { authOptions } from '@/lib/auth/auth.config';
-import { getCalendarEvents } from '@/actions/calendar.actions';
+import { getAllActivitiesAsEvents } from '@/actions/calendar.actions';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import CalendarClient from '@/components/admin/CalendarClient';
 
@@ -18,7 +18,7 @@ export default async function CalendarPage() {
     redirect('/login');
   }
 
-  const result = await getCalendarEvents();
+  const result = await getAllActivitiesAsEvents();
   const events = result.success ? result.data : [];
 
   return (
