@@ -10,16 +10,6 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Solar Site Management System",
   description: "Complete solar installation and employee tracking platform",
-  manifest: "/manifest.json",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: "Solar Manager",
-  },
-  icons: {
-    icon: "/icon-192x192.svg",
-    apple: "/icon-192x192.svg",
-  },
 };
 
 export const viewport: Viewport = {
@@ -36,26 +26,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              if ('serviceWorker' in navigator) {
-                window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js').then(
-                    function(registration) {
-                      console.log('ServiceWorker registration successful');
-                    },
-                    function(err) {
-                      console.log('ServiceWorker registration failed: ', err);
-                    }
-                  );
-                });
-              }
-            `,
-          }}
-        />
-      </head>
       <body className={inter.className}>
         <ThemeProvider
           attribute="class"
