@@ -334,6 +334,9 @@ export async function updateStep1Documents(
       throw new Error('Site not found');
     }
 
+    // Auto-calculate progress
+    await calculateAndUpdateProgress(siteId);
+
     revalidatePath('/admin/sites');
     revalidatePath(`/admin/sites/${siteId}`);
     
@@ -389,6 +392,9 @@ export async function updateStep2Data(
 
     console.log('Site updated successfully:', site._id);
 
+    // Auto-calculate progress
+    await calculateAndUpdateProgress(siteId);
+
     revalidatePath('/admin/sites');
     revalidatePath(`/admin/sites/${siteId}`);
     
@@ -438,6 +444,9 @@ export async function updateStep3Data(
     if (!site) {
       throw new Error('Site not found');
     }
+
+    // Auto-calculate progress
+    await calculateAndUpdateProgress(siteId);
 
     revalidatePath('/admin/sites');
     revalidatePath(`/admin/sites/${siteId}`);
@@ -497,6 +506,9 @@ export async function updateStep4Data(
       throw new Error('Site not found');
     }
 
+    // Auto-calculate progress
+    await calculateAndUpdateProgress(siteId);
+
     revalidatePath('/admin/sites');
     revalidatePath(`/admin/sites/${siteId}`);
     
@@ -521,6 +533,10 @@ export async function updateStep5Data(siteId: string, data: any) {
       $push: { timeline: { action: 'Step 5 Updated', description: 'DCDB & ACDB data updated', performedBy: session.user.name, timestamp: new Date() } }
     }, { new: true });
     if (!site) throw new Error('Site not found');
+    
+    // Auto-calculate progress
+    await calculateAndUpdateProgress(siteId);
+    
     revalidatePath('/admin/sites');
     revalidatePath(`/admin/sites/${siteId}`);
     return { success: true, data: JSON.parse(JSON.stringify(site)), message: 'Step 5 updated successfully' };
@@ -598,5 +614,161 @@ export async function updateStep9Data(siteId: string, data: any) {
     return { success: true, data: JSON.parse(JSON.stringify(site)), message: 'Step 9 updated successfully' };
   } catch (error: any) {
     return { success: false, error: error.message };
+  }
+}
+
+export async function updateFoundationRequirement(siteId: string, data: any) {
+  try {
+    const session = await auth();
+    if (!session) throw new Error('Unauthorized');
+    await connectDB();
+    const site = await Site.findByIdAndUpdate(siteId, {
+      $set: { 
+        'foundationRequirement.cement': data.cement,
+        'foundationRequirement.rodi': data.rodi,
+        'foundationRequirement.bajari': data.bajari,
+        'foundationRequirement.updatedBy': session.user.name,
+        'foundationRequirement.updatedAt': new Date()
+      },
+      $push: { 
+        timeline: { 
+          action: 'Foundation Requirement Updated', 
+          description: `Cement: ${data.cement} bags, Rodi: ${data.rodi} tons, Bajari: ${data.bajari} tons`, 
+          performedBy: session.user.name, 
+          timestamp: new Date() 
+        } 
+      }
+    }, { new: true });
+    if (!site) throw new Error('Site not found');
+    
+    // Auto-calculate progress
+    await calculateAndUpdateProgress(siteId);
+    
+    revalidatePath('/admin/sites');
+    revalidatePath(`/admin/sites/${siteId}`);
+    return { success: true, data: JSON.parse(JSON.stringify(site)), message: 'Foundation Requirement updated successfully' };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function updateFileWork(siteId: string, data: any) {
+  try {
+    const session = await auth();
+    if (!session) throw new Error('Unauthorized');
+    await connectDB();
+    const site = await Site.findByIdAndUpdate(siteId, {
+      $set: { 
+        'fileWork.name': data.name,
+        'fileWork.submitMeterForm': data.submitMeterForm,
+        'fileWork.fileSubmitDate': data.fileSubmitDate ? new Date(data.fileSubmitDate) : null,
+        'fileWork.linemanNumber': data.linemanNumber,
+        'fileWork.updatedBy': session.user.name,
+        'fileWork.updatedAt': new Date()
+      },
+      $push: { 
+        timeline: { 
+          action: 'File Work Updated', 
+          description: `Name: ${data.name}, Lineman: ${data.linemanNumber}`, 
+          performedBy: session.user.name, 
+          timestamp: new Date() 
+        } 
+      }
+    }, { new: true });
+    if (!site) throw new Error('Site not found');
+    
+    // Auto-calculate progress
+    await calculateAndUpdateProgress(siteId);
+    
+    revalidatePath('/admin/sites');
+    revalidatePath(`/admin/sites/${siteId}`);
+    return { success: true, data: JSON.parse(JSON.stringify(site)), message: 'File Work updated successfully' };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+// Helper function to calculate progress based on completed steps
+async function calculateAndUpdateProgress(siteId: string) {
+  try {
+    console.log('🔄 Calculating progress for site:', siteId);
+    const site = await Site.findById(siteId);
+    if (!site) {
+      console.log('❌ Site not found');
+      return;
+    }
+
+    let completedSteps = 0;
+    const totalSteps = 7; // Total number of steps
+
+    // Step 1: Documents (any document uploaded)
+    if (site.step1Documents?.billImage || site.step1Documents?.aadharImage || site.step1Documents?.cancelledChequeImage) {
+      completedSteps++;
+      console.log('✅ Step 1 completed');
+    }
+
+    // Step 2: Kilowatt (value > 0)
+    if (site.step2Data?.kilowatt && site.step2Data.kilowatt > 0) {
+      completedSteps++;
+      console.log('✅ Step 2 completed');
+    }
+
+    // Step 3: Structure (at least one item)
+    if (site.step3Data?.structure && site.step3Data.structure.length > 0) {
+      completedSteps++;
+      console.log('✅ Step 3 completed');
+    }
+
+    // Step 4: Panel & Wire (any value > 0)
+    if (site.step4Data && ((site.step4Data.moduleWatt && site.step4Data.moduleWatt > 0) || (site.step4Data.dcWireLength && site.step4Data.dcWireLength > 0))) {
+      completedSteps++;
+      console.log('✅ Step 4 completed');
+    }
+
+    // Step 5: DCDB & ACDB (any value filled)
+    if (site.step5Data && (site.step5Data.dcdbType || (site.step5Data.acdbAmpere && site.step5Data.acdbAmpere > 0))) {
+      completedSteps++;
+      console.log('✅ Step 5 completed');
+    }
+
+    // Step 6: Foundation Requirement (any value > 0)
+    if (site.foundationRequirement && ((site.foundationRequirement.cement && site.foundationRequirement.cement > 0) || (site.foundationRequirement.rodi && site.foundationRequirement.rodi > 0) || (site.foundationRequirement.bajari && site.foundationRequirement.bajari > 0))) {
+      completedSteps++;
+      console.log('✅ Step 6 completed');
+    }
+
+    // Step 7: File Work (any field filled)
+    if (site.fileWork && (site.fileWork.name || site.fileWork.submitMeterForm || site.fileWork.linemanNumber)) {
+      completedSteps++;
+      console.log('✅ Step 7 completed');
+    }
+
+    // Calculate percentage
+    const progressPercentage = Math.round((completedSteps / totalSteps) * 100);
+    console.log(`📊 Progress: ${completedSteps}/${totalSteps} = ${progressPercentage}%`);
+
+    // Determine status based on progress
+    let status = site.status;
+    if (progressPercentage === 0) {
+      status = 'pending';
+    } else if (progressPercentage > 0 && progressPercentage < 100) {
+      status = 'in-progress';
+    } else if (progressPercentage === 100) {
+      status = 'completed';
+    }
+
+    console.log(`🎯 Updating site with progress: ${progressPercentage}%, status: ${status}`);
+
+    // Update site with new progress and status
+    await Site.findByIdAndUpdate(siteId, {
+      $set: {
+        progressPercentage,
+        status
+      }
+    });
+
+    console.log('✅ Progress updated successfully');
+  } catch (error) {
+    console.error('❌ Error calculating progress:', error);
   }
 }

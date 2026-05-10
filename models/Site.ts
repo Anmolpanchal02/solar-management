@@ -49,7 +49,10 @@ const Step5DataSchema = new Schema({
   // DCDB - Single String or Double String
   dcdbType: { type: String, default: '' },
   
-  // ACDB - Single Phase or Three Phase
+  // ACDB - Ampere value (new field)
+  acdbAmpere: { type: Number, default: 0 },
+  
+  // ACDB - Type (old field - kept for backward compatibility)
   acdbType: { type: String, default: '' },
   
   updatedBy: { type: String },
@@ -102,6 +105,23 @@ const Step9DataSchema = new Schema({
   // Other
   otherAccessories: { type: String, default: '' },
   
+  updatedBy: { type: String },
+  updatedAt: { type: Date },
+}, { _id: false });
+
+const FoundationRequirementSchema = new Schema({
+  cement: { type: Number, default: 0 }, // in bags
+  rodi: { type: Number, default: 0 }, // in tons
+  bajari: { type: Number, default: 0 }, // in tons
+  updatedBy: { type: String },
+  updatedAt: { type: Date },
+}, { _id: false });
+
+const FileWorkSchema = new Schema({
+  name: { type: String, default: '' },
+  submitMeterForm: { type: String, default: '' },
+  fileSubmitDate: { type: Date },
+  linemanNumber: { type: String, default: '' },
   updatedBy: { type: String },
   updatedAt: { type: Date },
 }, { _id: false });
@@ -190,6 +210,14 @@ const SiteSchema = new Schema<SiteDocument>(
     },
     step9Data: {
       type: Step9DataSchema,
+      default: () => ({}),
+    },
+    foundationRequirement: {
+      type: FoundationRequirementSchema,
+      default: () => ({}),
+    },
+    fileWork: {
+      type: FileWorkSchema,
       default: () => ({}),
     },
     timeline: [TimelineEntrySchema],

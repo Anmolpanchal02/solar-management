@@ -242,7 +242,7 @@ export default function EmployeeSiteDetailClient({ site }: EmployeeSiteDetailCli
       )}
 
       {/* Step 5: DCDB & ACDB */}
-      {site.step5Data && (site.step5Data.dcdbType || site.step5Data.acdbType) && (
+      {site.step5Data && (site.step5Data.dcdbType || site.step5Data.acdbAmpere > 0) && (
         <Card>
           <CardHeader>
             <div className="flex items-center gap-3">
@@ -260,10 +260,10 @@ export default function EmployeeSiteDetailClient({ site }: EmployeeSiteDetailCli
                   <p className="font-medium">{site.step5Data.dcdbType}</p>
                 </div>
               )}
-              {site.step5Data.acdbType && (
+              {site.step5Data.acdbAmpere > 0 && (
                 <div>
-                  <p className="text-sm text-muted-foreground">ACDB Type</p>
-                  <p className="font-medium">{site.step5Data.acdbType}</p>
+                  <p className="text-sm text-muted-foreground">ACDB</p>
+                  <p className="font-medium">{site.step5Data.acdbAmpere} Ampere</p>
                 </div>
               )}
             </div>
@@ -403,6 +403,84 @@ export default function EmployeeSiteDetailClient({ site }: EmployeeSiteDetailCli
                 <p className="font-medium whitespace-pre-wrap">{site.step9Data.otherAccessories}</p>
               </div>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Foundation Requirement */}
+      {site.foundationRequirement && (site.foundationRequirement.cement > 0 || site.foundationRequirement.rodi > 0 || site.foundationRequirement.bajari > 0) && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center">
+                <CheckCircle className="w-6 h-6 text-white" />
+              </div>
+              <CardTitle>Foundation Requirement</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {site.foundationRequirement.cement > 0 && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Cement</p>
+                  <p className="font-medium">{site.foundationRequirement.cement} Bags</p>
+                </div>
+              )}
+              {site.foundationRequirement.rodi > 0 && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Rodi</p>
+                  <p className="font-medium">{site.foundationRequirement.rodi} Tons</p>
+                </div>
+              )}
+              {site.foundationRequirement.bajari > 0 && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Bajari</p>
+                  <p className="font-medium">{site.foundationRequirement.bajari} Tons</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* File Work */}
+      {site.fileWork && (site.fileWork.name || site.fileWork.submitMeterForm || site.fileWork.linemanNumber) && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center">
+                <CheckCircle className="w-6 h-6 text-white" />
+              </div>
+              <CardTitle>File Work</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {site.fileWork.name && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Name</p>
+                  <p className="font-medium">{site.fileWork.name}</p>
+                </div>
+              )}
+              {site.fileWork.submitMeterForm && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Submit Meter Form</p>
+                  <p className="font-medium">{site.fileWork.submitMeterForm}</p>
+                </div>
+              )}
+              {site.fileWork.fileSubmitDate && (
+                <div>
+                  <p className="text-sm text-muted-foreground">File Submit Date</p>
+                  <p className="font-medium">{new Date(site.fileWork.fileSubmitDate).toLocaleDateString()}</p>
+                </div>
+              )}
+              {site.fileWork.linemanNumber && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Lineman Number</p>
+                  <p className="font-medium">{site.fileWork.linemanNumber}</p>
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
       )}

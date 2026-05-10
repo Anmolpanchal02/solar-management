@@ -85,8 +85,15 @@ export default function SiteDetailClient({ site }: SiteDetailClientProps) {
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [uploadingField, setUploadingField] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [fullViewImage, setFullViewImage] = useState<{ url: string; title: string } | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ field: 'billImage' | 'aadharImage' | 'cancelledChequeImage'; title: string } | null>(null);
+  
+  // File input refs for inline upload
+  const billInputRef = useRef<HTMLInputElement>(null);
+  const aadharInputRef = useRef<HTMLInputElement>(null);
+  const chequeInputRef = useRef<HTMLInputElement>(null);
+  
   const [kilowatt, setKilowatt] = useState(site.step2Data?.kilowatt || 0);
   const [isSavingKW, setIsSavingKW] = useState(false);
   
@@ -133,10 +140,6 @@ export default function SiteDetailClient({ site }: SiteDetailClientProps) {
     }
     return null;
   });
-
-  const billInputRef = useRef<HTMLInputElement>(null);
-  const aadharInputRef = useRef<HTMLInputElement>(null);
-  const chequeInputRef = useRef<HTMLInputElement>(null);
 
   const [docForm, setDocForm] = useState({
     billImage: site.step1Documents?.billImage || '',
@@ -248,6 +251,103 @@ export default function SiteDetailClient({ site }: SiteDetailClientProps) {
       toast.success('Download started');
     } catch (error) {
       toast.error('Failed to download image');
+    }
+  };
+
+  const handleInlineUpload = async (file: File, field: 'billImage' | 'aadharImage' | 'cancelledChequeImage') => {
+    setUploadingField(field);
+    setUploadProgress(0);
+    
+    try {
+      // Validate file type - including HEIC for iPhone users
+      const validTypes = [
+        'image/jpeg',
+        'image/jpg', 
+        'image/png',
+        'image/gif',
+        'image/webp',
+        'image/bmp',
+        'image/svg+xml',
+        'image/heic',
+        'image/heif'
+      ];
+      
+      // Also check file extension for HEIC (some browsers don't set correct MIME type)
+      const fileName = file.name.toLowerCase();
+      const isHeic = fileName.endsWith('.heic') || fileName.endsWith('.heif');
+      
+      if (!validTypes.includes(file.type.toLowerCase()) && !isHeic) {
+        toast.error('Please select a valid image (JPG, PNG, GIF, WebP, BMP, SVG, HEIC)');
+        setUploadingField(null);
+        return;
+      }
+
+      // Validate file size (max 10MB)
+      const maxSize = 10 * 1024 * 1024; // 10MB
+      if (file.size > maxSize) {
+        toast.error('File size must be less than 10MB');
+        setUploadingField(null);
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      // Simulate progress for better UX
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          return prev + 10;
+        });
+      }, 200);
+
+      console.log('🔄 Starting upload for:', field, '| File type:', file.type, '| File name:', file.name);
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      clearInterval(progressInterval);
+      setUploadProgress(95);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Upload failed');
+      }
+
+      const data = await response.json();
+      console.log('✅ Cloudinary upload successful:', data.url);
+      
+      setUploadProgress(98);
+      
+      console.log('💾 Saving to database...');
+      const result = await updateStep1Documents(site._id, {
+        [field]: data.url,
+      });
+
+      console.log('📊 Database result:', result);
+      setUploadProgress(100);
+
+      if (result.success) {
+        toast.success('Document uploaded successfully');
+        console.log('🔄 Reloading page...');
+        // Wait a bit for the toast to show, then hard reload
+        setTimeout(() => {
+          window.location.reload();
+        }, 800);
+      } else {
+        toast.error(result.error || 'Failed to save document');
+        setUploadingField(null);
+        setUploadProgress(0);
+      }
+    } catch (error: any) {
+      console.error('❌ Upload error:', error);
+      toast.error(error.message || 'An error occurred during upload');
+      setUploadingField(null);
+      setUploadProgress(0);
     }
   };
 
@@ -548,28 +648,22 @@ export default function SiteDetailClient({ site }: SiteDetailClientProps) {
       {/* Step 1: Documents */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                isStep1Complete ? 'bg-green-500' : 'bg-blue-500'
-              }`}>
-                {isStep1Complete ? (
-                  <CheckCircle className="w-6 h-6 text-white" />
-                ) : (
-                  <span className="text-white font-bold">1</span>
-                )}
-              </div>
-              <div>
-                <CardTitle>Step 1: Upload Documents</CardTitle>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Bill, Aadhar Card, and Cancelled Cheque
-                </p>
-              </div>
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+              isStep1Complete ? 'bg-green-500' : 'bg-blue-500'
+            }`}>
+              {isStep1Complete ? (
+                <CheckCircle className="w-6 h-6 text-white" />
+              ) : (
+                <span className="text-white font-bold">1</span>
+              )}
             </div>
-            <Button onClick={() => setIsUploadDialogOpen(true)}>
-              <Upload className="w-4 h-4 mr-2" />
-              {isStep1Complete ? 'Update Documents' : 'Upload Documents'}
-            </Button>
+            <div>
+              <CardTitle>Step 1: Upload Documents</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                Bill, Aadhar Card, and Cancelled Cheque
+              </p>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -584,6 +678,13 @@ export default function SiteDetailClient({ site }: SiteDetailClientProps) {
                         src={site.step1Documents.billImage}
                         alt="Bill"
                         className="w-full h-48 object-cover rounded-md"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                          const parent = (e.target as HTMLImageElement).parentElement;
+                          if (parent) {
+                            parent.innerHTML = '<div class="w-full h-48 bg-gray-100 dark:bg-gray-800 rounded-md flex items-center justify-center"><p class="text-sm text-muted-foreground">Image not available</p></div>';
+                          }
+                        }}
                       />
                       <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all rounded-md flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
                         <Button
@@ -629,13 +730,41 @@ export default function SiteDetailClient({ site }: SiteDetailClientProps) {
             ) : (
               <Card>
                 <CardContent className="p-4">
+                  <input
+                    ref={billInputRef}
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/bmp,image/svg+xml,image/heic,image/heif,.heic,.heif"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        handleInlineUpload(file, 'billImage');
+                      }
+                    }}
+                    disabled={uploadingField === 'billImage'}
+                  />
                   <div
-                    onClick={() => setIsUploadDialogOpen(true)}
-                    className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors h-48 flex flex-col items-center justify-center"
+                    onClick={() => uploadingField !== 'billImage' && billInputRef.current?.click()}
+                    className={`border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-8 text-center ${uploadingField === 'billImage' ? 'cursor-wait' : 'cursor-pointer hover:border-primary'} transition-colors h-48 flex flex-col items-center justify-center`}
                   >
-                    <ImagePlus className="w-10 h-10 mb-2 text-muted-foreground" />
-                    <p className="text-sm font-medium">Bill</p>
-                    <p className="text-xs text-muted-foreground mt-1">Click to upload</p>
+                    {uploadingField === 'billImage' ? (
+                      <>
+                        <div className="w-16 h-16 mb-3">
+                          <svg className="animate-spin h-16 w-16 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                        </div>
+                        <p className="text-sm font-medium text-primary">Uploading...</p>
+                        <p className="text-2xl font-bold text-primary mt-2">{uploadProgress}%</p>
+                      </>
+                    ) : (
+                      <>
+                        <ImagePlus className="w-10 h-10 mb-2 text-muted-foreground" />
+                        <p className="text-sm font-medium">Bill</p>
+                        <p className="text-xs text-muted-foreground mt-1">Click to upload</p>
+                      </>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -651,6 +780,13 @@ export default function SiteDetailClient({ site }: SiteDetailClientProps) {
                         src={site.step1Documents.aadharImage}
                         alt="Aadhar Card"
                         className="w-full h-48 object-cover rounded-md"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                          const parent = (e.target as HTMLImageElement).parentElement;
+                          if (parent) {
+                            parent.innerHTML = '<div class="w-full h-48 bg-gray-100 dark:bg-gray-800 rounded-md flex items-center justify-center"><p class="text-sm text-muted-foreground">Image not available</p></div>';
+                          }
+                        }}
                       />
                       <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all rounded-md flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
                         <Button
@@ -696,13 +832,41 @@ export default function SiteDetailClient({ site }: SiteDetailClientProps) {
             ) : (
               <Card>
                 <CardContent className="p-4">
+                  <input
+                    ref={aadharInputRef}
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/bmp,image/svg+xml,image/heic,image/heif,.heic,.heif"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        handleInlineUpload(file, 'aadharImage');
+                      }
+                    }}
+                    disabled={uploadingField === 'aadharImage'}
+                  />
                   <div
-                    onClick={() => setIsUploadDialogOpen(true)}
-                    className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors h-48 flex flex-col items-center justify-center"
+                    onClick={() => uploadingField !== 'aadharImage' && aadharInputRef.current?.click()}
+                    className={`border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-8 text-center ${uploadingField === 'aadharImage' ? 'cursor-wait' : 'cursor-pointer hover:border-primary'} transition-colors h-48 flex flex-col items-center justify-center`}
                   >
-                    <ImagePlus className="w-10 h-10 mb-2 text-muted-foreground" />
-                    <p className="text-sm font-medium">Aadhar Card</p>
-                    <p className="text-xs text-muted-foreground mt-1">Click to upload</p>
+                    {uploadingField === 'aadharImage' ? (
+                      <>
+                        <div className="w-16 h-16 mb-3">
+                          <svg className="animate-spin h-16 w-16 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                        </div>
+                        <p className="text-sm font-medium text-primary">Uploading...</p>
+                        <p className="text-2xl font-bold text-primary mt-2">{uploadProgress}%</p>
+                      </>
+                    ) : (
+                      <>
+                        <ImagePlus className="w-10 h-10 mb-2 text-muted-foreground" />
+                        <p className="text-sm font-medium">Aadhar Card</p>
+                        <p className="text-xs text-muted-foreground mt-1">Click to upload</p>
+                      </>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -718,6 +882,13 @@ export default function SiteDetailClient({ site }: SiteDetailClientProps) {
                         src={site.step1Documents.cancelledChequeImage}
                         alt="Cancelled Cheque"
                         className="w-full h-48 object-cover rounded-md"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                          const parent = (e.target as HTMLImageElement).parentElement;
+                          if (parent) {
+                            parent.innerHTML = '<div class="w-full h-48 bg-gray-100 dark:bg-gray-800 rounded-md flex items-center justify-center"><p class="text-sm text-muted-foreground">Image not available</p></div>';
+                          }
+                        }}
                       />
                       <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all rounded-md flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
                         <Button
@@ -763,13 +934,41 @@ export default function SiteDetailClient({ site }: SiteDetailClientProps) {
             ) : (
               <Card>
                 <CardContent className="p-4">
+                  <input
+                    ref={chequeInputRef}
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/bmp,image/svg+xml,image/heic,image/heif,.heic,.heif"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        handleInlineUpload(file, 'cancelledChequeImage');
+                      }
+                    }}
+                    disabled={uploadingField === 'cancelledChequeImage'}
+                  />
                   <div
-                    onClick={() => setIsUploadDialogOpen(true)}
-                    className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors h-48 flex flex-col items-center justify-center"
+                    onClick={() => uploadingField !== 'cancelledChequeImage' && chequeInputRef.current?.click()}
+                    className={`border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-8 text-center ${uploadingField === 'cancelledChequeImage' ? 'cursor-wait' : 'cursor-pointer hover:border-primary'} transition-colors h-48 flex flex-col items-center justify-center`}
                   >
-                    <ImagePlus className="w-10 h-10 mb-2 text-muted-foreground" />
-                    <p className="text-sm font-medium">Cancelled Cheque</p>
-                    <p className="text-xs text-muted-foreground mt-1">Click to upload</p>
+                    {uploadingField === 'cancelledChequeImage' ? (
+                      <>
+                        <div className="w-16 h-16 mb-3">
+                          <svg className="animate-spin h-16 w-16 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                        </div>
+                        <p className="text-sm font-medium text-primary">Uploading...</p>
+                        <p className="text-2xl font-bold text-primary mt-2">{uploadProgress}%</p>
+                      </>
+                    ) : (
+                      <>
+                        <ImagePlus className="w-10 h-10 mb-2 text-muted-foreground" />
+                        <p className="text-sm font-medium">Cancelled Cheque</p>
+                        <p className="text-xs text-muted-foreground mt-1">Click to upload</p>
+                      </>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -1235,12 +1434,16 @@ export default function SiteDetailClient({ site }: SiteDetailClientProps) {
           <DialogHeader>
             <DialogTitle>{fullViewImage?.title}</DialogTitle>
           </DialogHeader>
-          <div className="relative">
+          <div className="relative bg-gray-100 dark:bg-gray-900 rounded-lg p-4">
             {fullViewImage && (
               <img
                 src={fullViewImage.url}
                 alt={fullViewImage.title}
                 className="w-full h-auto max-h-[70vh] object-contain rounded-lg"
+                onError={(e) => {
+                  console.error('Image failed to load:', fullViewImage.url);
+                  (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23ddd" width="200" height="200"/%3E%3Ctext fill="%23999" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3EImage not available%3C/text%3E%3C/svg%3E';
+                }}
               />
             )}
           </div>

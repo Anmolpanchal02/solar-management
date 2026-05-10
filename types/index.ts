@@ -62,6 +62,7 @@ export interface Site {
   step5Data?: {
     dcdbType?: string; // Single String or Double String
     acdbType?: string; // Single Phase or Three Phase
+    acdbAmpere?: number; // ACDB ampere value
     updatedBy?: string;
     updatedAt?: Date;
   };
@@ -92,6 +93,21 @@ export interface Site {
     warrantyYears?: number;
     warrantyDetails?: string;
     otherAccessories?: string;
+    updatedBy?: string;
+    updatedAt?: Date;
+  };
+  foundationRequirement?: {
+    cement?: number;
+    rodi?: number;
+    bajari?: number;
+    updatedBy?: string;
+    updatedAt?: Date;
+  };
+  fileWork?: {
+    name?: string;
+    submitMeterForm?: string;
+    fileSubmitDate?: Date;
+    linemanNumber?: string;
     updatedBy?: string;
     updatedAt?: Date;
   };
