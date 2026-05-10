@@ -104,14 +104,6 @@ export default function LoginForm() {
               )}
             </Button>
           </form>
-
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-            <p className="text-sm font-semibold text-blue-900 mb-2">Demo Credentials:</p>
-            <div className="space-y-1 text-sm text-blue-700">
-              <p><strong>Admin:</strong> admin@solar.com / admin123</p>
-              <p><strong>Employee:</strong> employee@solar.com / employee123</p>
-            </div>
-          </div>
         </CardContent>
       </Card>
     </div>
